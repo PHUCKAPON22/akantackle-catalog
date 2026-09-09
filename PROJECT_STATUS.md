@@ -3,10 +3,11 @@
 Updated: 2026-09-09
 
 ## Current
-The six requested admin improvements are deployed to production. Catalog and sub-catalog deletion is implemented locally and ready for release. The additive migration is applied to the dedicated live backend.
+The six requested admin improvements and guarded catalog/sub-catalog deletion are deployed to production. The additive migration is applied to the dedicated live backend.
 
 ## Identity and rollback
 - GitHub: PHUCKAPON22/akantackle-catalog, master. Connector verified as owner with push permission.
+- Catalog deletion release: 022a7d9c28d9bbfb6dac206b8c7fbd90e6710f94. Vercel deployment mK9rLGFgPCeY6L3xJ5q8aUzp39M8 completed successfully; the production alias and deployed AdminPage asset were verified.
 - Released feature commit: 1a9da77b0d7c38e3852585e9ddccd0a3f14c9ae3 (local source commit 1ed013c). Vercel deployment 8Xjupxc1VGSvyTZPcDi6o2jDsM3n is Ready, built in 15 seconds at 15:57 Asia/Bangkok on 2026-09-09. Production alias verified.
 - Frontend rollback: c5b3eb9d2218ba8a504c8e20b583809225ba4ed7; production deployment A2fM2y52BANVtSEFsFDWudUd7qBT was Ready and verified before this release.
 - Supabase: ORIGANO / akantackle-catalog, nwlennnacdrwvtsrgwkw, Singapore. Production URL: https://akantackle-catalog.vercel.app.
@@ -31,16 +32,17 @@ The six requested admin improvements are deployed to production. Catalog and sub
 - Mixed valid/invalid upload queue saved two images as Pending, reported the invalid file, and retry did not duplicate completed products. Publishing made both visible in the separate client; bulk deletion removed both records and files.
 - Actual new authenticated mutations against production have not been repeated: the agent's in-app /admin session is signed out. User data was not used as test fixtures. Browser viewport override did not take effect, so mobile-width visual verification is not claimed.
 - Isolated deletion UI tests verified controls for both levels, empty-catalog confirmation, blocking for a main catalog with a child, blocking for a catalog with Pending/hidden products, and visible query-error recovery. No real catalog was deleted during testing.
+- Production serves the same hashed AdminPage bundle produced by the verified local build, including the catalog usage checks and named delete confirmation. Public and `/admin` routes reloaded without browser errors after deployment.
 
 ## Operational notes
 Supabase and Vercel connectors still expose the wrong account/no teams. Akantackle database changes used the verified ORIGANO dashboard; Vercel has a valid browser session. Never write to WanderSiam. Production Vite environment variables are configured; Preview and Development scopes are not.
 
 Live migration 202609090002 was applied via SQL editor, without CLI migration-history entries. The recovered baseline is for fresh databases only. Do not replay either migration on live; see DATABASE.md.
 
-Local work is in work/akantackle-catalog under the Codex task. Its commits differ from the API-created remote release history. Publish snapshots on top of the current verified remote master; do not force-push divergent local history.
+Local work is in work/akantackle-catalog under the Codex task. The release branch is based on the current API-created remote history. Do not force-push the older divergent local master history.
 
 ## Next
-Publish the catalog-deletion frontend to master, verify Vercel Ready and reload the production catalog/Admin routes. The user can then open Catalogs and delete any empty catalog or sub catalog.
+The user can open Admin > Catalogs and test deleting an empty catalog or sub catalog. Products must be moved first, and child sub catalogs must be deleted before their parent catalog.
 
 ## Future scope
 Catalog rename, bulk product reassignment, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync remain future work. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.
