@@ -28,7 +28,7 @@ export function Footer() {
             081-811-1448
           </a>
           <Link to="/admin" className="text-zinc-600 transition-colors hover:text-zinc-300">
-            สำหรับผู้ดูแลระบบ
+            Admin
           </Link>
         </div>
       </div>

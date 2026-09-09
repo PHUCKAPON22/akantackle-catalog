@@ -32,13 +32,13 @@ export function LoginForm({ onSignIn }: LoginFormProps) {
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-600/15 text-brand-500">
             <Lock size={20} />
           </div>
-          <h1 className="font-display text-lg font-semibold text-white">Admin เข้าสู่ระบบ</h1>
-          <p className="mt-1 text-sm text-zinc-500">Akantackle Catalog — หลังบ้าน</p>
+          <h1 className="font-display text-lg font-semibold text-white">Admin sign in</h1>
+          <p className="mt-1 text-sm text-zinc-500">Akantackle Catalog — Administration</p>
         </div>
 
         <div className="space-y-4">
           <div>
-            <Label htmlFor="email">อีเมล</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
@@ -49,7 +49,7 @@ export function LoginForm({ onSignIn }: LoginFormProps) {
             />
           </div>
           <div>
-            <Label htmlFor="password">รหัสผ่าน</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -61,7 +61,7 @@ export function LoginForm({ onSignIn }: LoginFormProps) {
           </div>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+            {submitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </div>
       </form>

@@ -9,17 +9,20 @@ export function useProducts() {
 
   const refetch = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('sort_order')
-      .order('created_at', { ascending: false })
-    if (error) setError(error.message)
-    else {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('sort_order')
+        .order('created_at', { ascending: false })
+      if (error) throw error
       setProducts(data ?? [])
       setError(null)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to load products')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {

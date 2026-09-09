@@ -12,7 +12,7 @@ import { ProductModal } from '@/components/ProductModal'
 import type { CategorySlug, Product } from '@/types/catalog'
 
 export function CatalogPage() {
-  const { products, loading } = useProducts()
+  const { products, loading, error, refetch } = useProducts()
   const { categories } = useCategories()
   const { logo, floating } = useHeroImages()
   const [activeCategory, setActiveCategory] = useState<CategorySlug | 'all'>('all')
@@ -45,9 +45,14 @@ export function CatalogPage() {
               <div key={i} className="aspect-square animate-pulse rounded-2xl bg-surface" />
             ))}
           </div>
+        ) : error ? (
+          <div role="alert" className="rounded-2xl border border-border p-12 text-center">
+            <p className="text-zinc-400">We couldn’t load the catalog. Please try again.</p>
+            <button onClick={() => void refetch()} className="mt-4 rounded-lg bg-brand-600 px-5 py-2 text-white">Try again</button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-24 text-center">
-            <p className="text-zinc-400">ยังไม่มีสินค้าในหมวดนี้</p>
+            <p className="text-zinc-400">No products in this category yet.</p>
           </div>
         ) : (
           <motion.div layout className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

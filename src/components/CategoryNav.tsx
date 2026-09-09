@@ -20,7 +20,7 @@ export function CategoryNav({ categories, active, onChange, counts }: CategoryNa
             : 'border-border bg-surface text-zinc-300 hover:border-brand-600/60 hover:text-white',
         )}
       >
-        ทั้งหมด
+        All
         <span className="ml-1.5 opacity-70">{counts.all ?? 0}</span>
       </button>
       {categories.map((cat) => (
@@ -34,7 +34,7 @@ export function CategoryNav({ categories, active, onChange, counts }: CategoryNa
               : 'border-border bg-surface text-zinc-300 hover:border-brand-600/60 hover:text-white',
           )}
         >
-          {cat.name_th}
+          {cat.name_en}
           <span className="ml-1.5 opacity-70">{counts[cat.slug] ?? 0}</span>
         </button>
       ))}

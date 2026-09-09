@@ -1,32 +1,16 @@
-# React + TypeScript + Vite
+# Akantackle Catalog
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Existing React + TypeScript + Vite fishing-tackle catalog. Read PROJECT_STATUS.md before continuing; DATABASE.md describes the actual recovery schema and its limitations.
 
-Currently, two official plugins are available:
+## Local development
+1. Install dependencies with npm ci.
+2. Copy .env.example to .env.local and set the dedicated Akantackle project's VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (publishable key). Never use WanderSiam or backend secret keys.
+3. Run npm run dev.
+4. Run npm run build and npm run lint before publishing.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Public catalog: /. Admin sign-in: /admin. Admin authorization requires a trusted admins table membership in addition to Supabase Auth. There is no public sign-up flow.
 
-## React Compiler
+## Recovery state
+The new dedicated backend is connected locally. The production deployment still needs Vercel environment configuration and deployment. Pending/hidden products are excluded by RLS. Legacy admin review controls and expanded product/import features are not yet implemented; do not bulk-import real products yet.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Production target: https://akantackle-catalog.vercel.app. Preserve the existing Vercel project and GitHub master branch. Document environment/deployment state in PROJECT_STATUS.md after releases.
