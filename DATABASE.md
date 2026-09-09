@@ -14,7 +14,7 @@ Verified 2026-09-09: dedicated ORIGANO / akantackle-catalog project nwlennnacdrw
 
 Indexes include categories(parent_slug), products(category), products(sort_order,created_at DESC), products(category,sort_order,created_at DESC,id), the image slot uniqueness index, and a partial unique index allowing only one logo row.
 
-validate_catalog_parent rejects self-parenting, more than two levels, and moving a main catalog with children below another catalog. sync_cover_image maintains normalized slot 0 after product insertion or cover changes. Existing 253 product covers were verified to have 253 normalized image records after migration; no agent test catalogs remained. These counts are a point-in-time readback, not seed data.
+validate_catalog_parent rejects self-parenting, more than two levels, and moving a main catalog with children below another catalog. Both categories.parent_slug and products.category use ON DELETE RESTRICT: a main catalog with children and any catalog containing products cannot be deleted. Admin performs friendly counts first, while these constraints remain the final protection against concurrent changes. sync_cover_image maintains normalized slot 0 after product insertion or cover changes. Existing 253 product covers were verified to have 253 normalized image records after migration; no agent test catalogs remained. These counts are a point-in-time readback, not seed data.
 
 ## Functions
 - catalog_counts(): public read-only counts grouped by assigned catalog, explicitly approved and active/out_of_stock with a category.

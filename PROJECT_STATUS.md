@@ -3,7 +3,7 @@
 Updated: 2026-09-09
 
 ## Current
-The six requested admin improvements are deployed to production. The additive migration is applied to the dedicated live backend. Public catalog and direct admin sign-in were reloaded and verified after deployment.
+The six requested admin improvements are deployed to production. Catalog and sub-catalog deletion is implemented locally and ready for release. The additive migration is applied to the dedicated live backend.
 
 ## Identity and rollback
 - GitHub: PHUCKAPON22/akantackle-catalog, master. Connector verified as owner with push permission.
@@ -14,6 +14,7 @@ The six requested admin improvements are deployed to production. The additive mi
 
 ## Done
 - Create main catalogs and sub catalogs, with a database-enforced two-level hierarchy.
+- Delete empty catalogs and sub catalogs after a named confirmation. Admin checks every assigned product, including Pending/hidden items, and requires child catalogs to be deleted first. Database foreign keys provide concurrent-write protection.
 - Bulk product selection, publish/unpublish and confirmed deletion of records and associated images; floating homepage images also support bulk deletion.
 - Drag ordering within a selected catalog using an atomic database function, plus touch/keyboard arrow controls.
 - Logo editing for any image proportions: fit, zoom, position, visible overflow frame and saved layout. Repeated selection of the same file works; replacements use fresh URLs.
@@ -29,6 +30,7 @@ The six requested admin improvements are deployed to production. The additive mi
 - A separate local mock backend verified repeated logo uploads use different URLs, old-file cleanup succeeds, and another independently opened catalog updates its image/layout without reload.
 - Mixed valid/invalid upload queue saved two images as Pending, reported the invalid file, and retry did not duplicate completed products. Publishing made both visible in the separate client; bulk deletion removed both records and files.
 - Actual new authenticated mutations against production have not been repeated: the agent's in-app /admin session is signed out. User data was not used as test fixtures. Browser viewport override did not take effect, so mobile-width visual verification is not claimed.
+- Isolated deletion UI tests verified controls for both levels, empty-catalog confirmation, blocking for a main catalog with a child, blocking for a catalog with Pending/hidden products, and visible query-error recovery. No real catalog was deleted during testing.
 
 ## Operational notes
 Supabase and Vercel connectors still expose the wrong account/no teams. Akantackle database changes used the verified ORIGANO dashboard; Vercel has a valid browser session. Never write to WanderSiam. Production Vite environment variables are configured; Preview and Development scopes are not.
@@ -38,8 +40,7 @@ Live migration 202609090002 was applied via SQL editor, without CLI migration-hi
 Local work is in work/akantackle-catalog under the Codex task. Its commits differ from the API-created remote release history. Publish snapshots on top of the current verified remote master; do not force-push divergent local history.
 
 ## Next
-The user can refresh their authenticated /admin page to receive the new tools, then review a few existing Pending images and choose Publish selected. A separate viewer receives published updates within approximately 15 seconds while visible and online. This documentation follow-up records the verified feature deployment; subsequent documentation-only commits do not change the tested application code.
+Publish the catalog-deletion frontend to master, verify Vercel Ready and reload the production catalog/Admin routes. The user can then open Catalogs and delete any empty catalog or sub catalog.
 
 ## Future scope
-Catalog rename/delete, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync are not part of this six-item release. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.
-
+Catalog rename, bulk product reassignment, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync remain future work. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.

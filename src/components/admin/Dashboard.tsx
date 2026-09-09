@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, GripVertical, Image, ImageOff, LogOut, Pencil, Upload } from 'lucide-react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCategories } from '@/hooks/useCategories'
@@ -14,7 +14,7 @@ import { catalogLabel, catalogScope, errorMessage, notifyCatalogChanged, PAGE_SI
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types/catalog'
 export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
-  const { categories, error: catalogError } = useCategories()
+  const { categories, loading: catalogsLoading, error: catalogError } = useCategories()
   const [catalog, setCatalog] = useState('all')
   const [page, setPage] = useState(0)
   const { products, count, loading, error: loadError, updateProduct, refetch } = useProducts({ scope: catalogScope(categories, catalog), page })
@@ -29,6 +29,11 @@ export function Dashboard({ onSignOut }: { onSignOut: () => void }) {
   const [message, setMessage] = useState('')
   const [dragging, setDragging] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
+  useEffect(() => {
+    if (!catalogsLoading && !catalogError && catalog !== 'all' && !categories.some(c => c.slug === catalog)) {
+      setCatalog('all'); setPage(0); setSelected([])
+    }
+  }, [categories, catalogsLoading, catalogError, catalog])
   const visibleSelection = selected.filter(id => products.some(product => product.id === id))
   async function publish(value: boolean) {
     setBusy(true); setError(''); setMessage('')

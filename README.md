@@ -11,7 +11,7 @@ React + TypeScript + Vite fishing-tackle catalog. Read PROJECT_STATUS.md before 
 Public catalog: /. Admin: /admin. Supabase Auth and trusted admins membership are required; there is no public sign-up flow. Never use WanderSiam or backend-only credentials.
 
 ## Admin workflow
-- Catalogs: create a main catalog, or select a parent to create a sub catalog.
+- Catalogs: create a main catalog, or select a parent to create a sub catalog. Empty catalogs have a Delete control. Move all products first, and delete sub catalogs before deleting their main catalog.
 - Upload: choose a catalog, review the queue and upload. Leave publication unchecked to keep test images Pending.
 - Select product checkboxes for Publish selected, Unpublish or Delete selected. Selection covers the current 48-product page; deletion names the selected records before confirmation.
 - Choose a catalog and drag product grips to change display order. Arrow buttons provide a touch/keyboard alternative.

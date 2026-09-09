@@ -33,8 +33,10 @@ function ProductListing({ scope, onSelect }: { scope: string[]; onSelect: (produ
 export function CatalogPage() {
   const { categories, error: categoryError } = useCategories()
   const { logo, floating } = useHeroImages()
-  const [activeCategory, setActiveCategory] = useState('all')
-  const [activeSub, setActiveSub] = useState('all')
+  const [chosenCategory, setActiveCategory] = useState('all')
+  const [chosenSub, setActiveSub] = useState('all')
+  const activeCategory = categories.some(c => c.slug === chosenCategory && !c.parent_slug) ? chosenCategory : 'all'
+  const activeSub = categories.some(c => c.slug === chosenSub && c.parent_slug === activeCategory) ? chosenSub : 'all'
   const [selected, setSelected] = useState<Product | null>(null)
   const query = useCallback(async () => { const { data, error } = await supabase.rpc('catalog_counts'); if (error) throw error; return data as { category: string; total: number }[] }, [])
   const { data: totals } = useLiveQuery(query, [])
