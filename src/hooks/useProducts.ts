@@ -1,50 +1,32 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { notifyCatalogChanged, PAGE_SIZE } from '@/lib/catalog'
+import { useLiveQuery } from './useLiveQuery'
 import type { Product, ProductInput } from '@/types/catalog'
-
-export function useProducts() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const refetch = useCallback(async () => {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('sort_order')
-        .order('created_at', { ascending: false })
+export function useProducts({ scope = [], publicOnly = false, page = 0, pages = 1 }: { scope?: string[]; publicOnly?: boolean; page?: number; pages?: number } = {}) {
+  const scopeKey = JSON.stringify(scope)
+  const query = useCallback(async () => {
+    const selected = JSON.parse(scopeKey) as string[]
+    const products: Product[] = []
+    let total = 0
+    const end = (page + pages) * PAGE_SIZE
+    for (let start = page * PAGE_SIZE; start < end; start += 1000) {
+      let request = supabase.from('products').select('*', { count: 'exact' })
+      if (selected.length) request = request.in('category', selected)
+      if (publicOnly) request = request.eq('review_status', 'approved').in('status', ['active', 'out_of_stock']).not('category', 'is', null)
+      const { data, count, error } = await request.order('sort_order').order('created_at', { ascending: false }).order('id').range(start, Math.min(start + 999, end - 1))
       if (error) throw error
-      setProducts(data ?? [])
-      setError(null)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to load products')
-    } finally {
-      setLoading(false)
+      total = count ?? 0
+      products.push(...(data ?? []) as Product[])
+      if (start + 1000 >= total) break
     }
-  }, [])
-
-  useEffect(() => {
-    refetch()
-  }, [refetch])
-
+    return { products, count: total }
+  }, [scopeKey, publicOnly, page, pages])
+  const { data, ...state } = useLiveQuery(query, { products: [] as Product[], count: 0 })
   async function updateProduct(id: string, input: Partial<ProductInput>) {
-    const { data, error } = await supabase
-      .from('products')
-      .update({ ...input, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single()
-    if (!error) await refetch()
-    return { data, error }
+    const result = await supabase.from('products').update({ ...input, updated_at: new Date().toISOString() }).eq('id', id).select().single()
+    if (!result.error) notifyCatalogChanged()
+    return result
   }
-
-  async function deleteProduct(id: string) {
-    const { error } = await supabase.from('products').delete().eq('id', id)
-    if (!error) await refetch()
-    return { error }
-  }
-
-  return { products, loading, error, refetch, updateProduct, deleteProduct }
+  return { ...data, ...state, updateProduct }
 }

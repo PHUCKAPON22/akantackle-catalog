@@ -3,41 +3,41 @@
 Updated: 2026-09-09
 
 ## Current
-Phase 1: backend recovery. The existing React/Vite catalog runs locally against the new dedicated Akantackle Supabase project. Production has not been updated.
+The six requested admin improvements are implemented and locally verified. The additive database migration is already applied to the dedicated live Akantackle backend. Publishing this frontend release is the next immediate step.
 
-## Verified identity
-- GitHub: PHUCKAPON22/akantackle-catalog, master.
-- Remote baseline and rollback SHA: f6d3a5094b1e1699a6898cc7f5c9a0840869580a (rechecked via GitHub API).
-- Supabase: ORIGANO / akantackle-catalog, nwlennnacdrwvtsrgwkw, Singapore.
-- Vercel: ORIGANO / akantackle-catalog; production branch master. Last verified deployment 8vPdkG3tt53JdLB7ddvuW2ry7HBA (Aug 9, Ready) renders blank because build-time variables were absent.
+## Identity and rollback
+- GitHub: PHUCKAPON22/akantackle-catalog, master. Connector verified as owner with push permission.
+- Frontend rollback: c5b3eb9d2218ba8a504c8e20b583809225ba4ed7; production deployment A2fM2y52BANVtSEFsFDWudUd7qBT was Ready and verified before this release.
+- Supabase: ORIGANO / akantackle-catalog, nwlennnacdrwvtsrgwkw, Singapore. Production URL: https://akantackle-catalog.vercel.app.
+- First store admin exists with confirmed Auth account and trusted admins membership. No credentials are stored here.
 
 ## Done
-- Created four RLS-protected tables: admins, categories, products, hero_images.
-- Seeded the five legacy categories with English labels. No real products or admin users created.
-- Created public-read akantackle-products image bucket; writes require trusted admin membership.
-- Exposed akantackle schema with minimum role grants. Disabled automatic exposure remains unchanged.
-- Public product reads require approved review, active/out_of_stock status, and category. New products default to pending.
-- Updated ignored local environment to the verified project's publishable credentials.
-- Added startup error boundary, loading state, retry screen and asynchronous catalog-error UI.
-- Added SPA rewrite for /admin on Vercel; converted public empty-state/navigation and sign-in labels to English.
+- Create main catalogs and sub catalogs, with a database-enforced two-level hierarchy.
+- Bulk product selection, publish/unpublish and confirmed deletion of records and associated images; floating homepage images also support bulk deletion.
+- Drag ordering within a selected catalog using an atomic database function, plus touch/keyboard arrow controls.
+- Logo editing for any image proportions: fit, zoom, position, visible overflow frame and saved layout. Repeated selection of the same file works; replacements use fresh URLs.
+- Public data refresh every 15 seconds while visible/online and on returning to the page. Pending products stay private until explicitly published.
+- 48-product pagination and public infinite loading; upload queue of 100 files with three workers, optimization, explicit errors and retry without duplicating completed uploads.
+- Normalized product_images table with cover backfill, RLS and cascading deletion. Schema migrations and operating documentation are versioned.
+- Existing user data preserved. Readback found 253 product covers and 253 normalized images, zero test catalogs and five RLS-protected tables.
 
 ## Validation
-- Build and lint pass.
-- Local catalog renders all five categories; no console errors on initial successful load.
-- REST: categories/products/hero_images return HTTP 200. Anonymous admins access returns HTTP 401 as intended.
-- Transactional RLS test: pending and hidden products excluded; only approved active product visible; anonymous insert denied; admins list private. All three assertions true; test rows rolled back.
-- Missing-configuration recovery screen and direct local /admin fallback previously verified.
+- Build, lint and three unit tests pass.
+- Transactional database tests passed for hierarchy, ordering, public visibility/counts, non-admin denial and cascade deletion; fixtures were rolled back before applying the migration.
+- Isolated UI tests passed for catalog/sub-catalog creation, native drag ordering, selected publish/delete, logo overflow and saved edit values.
+- A separate local mock backend verified repeated logo uploads use different URLs, old-file cleanup succeeds, and another independently opened catalog updates its image/layout without reload.
+- Mixed valid/invalid upload queue saved two images as Pending, reported the invalid file, and retry did not duplicate completed products. Publishing made both visible in the separate client; bulk deletion removed both records and files.
+- Actual new authenticated mutations against production have not been repeated: the agent's in-app /admin session is signed out. User data was not used as test fixtures. Browser viewport override did not take effect, so mobile-width visual verification is not claimed.
 
-## Remaining issue
-Production environment/deployment still pending Vercel sign-in. The installed Supabase connector still points to WanderSiam; do not use it for Akantackle. Use the verified ORIGANO browser session. Vercel connector returned no teams.
-Original Desktop repository .git is unwritable from the sandbox. A working clone under the Codex task work directory preserves history for committing the verified changes. GitHub CLI authentication is invalid; no remote push has occurred.
+## Operational notes
+Supabase and Vercel connectors still expose the wrong account/no teams. Akantackle database changes used the verified ORIGANO dashboard; Vercel has a valid browser session. Never write to WanderSiam. Production Vite environment variables are configured; Preview and Development scopes are not.
+
+Live migration 202609090002 was applied via SQL editor, without CLI migration-history entries. The recovered baseline is for fresh databases only. Do not replay either migration on live; see DATABASE.md.
+
+Local work is in work/akantackle-catalog under the Codex task. Its commits differ from the API-created remote release history. Publish snapshots on top of the current verified remote master; do not force-push divergent local history.
 
 ## Next
-Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in the existing Vercel project, publish the recovery commit, redeploy, and verify both / and /admin in production. Create the user's first admin through an approved Auth setup, then implement the structured product/review/import workflow before importing real products.
+Publish this tested release to master, verify Vercel Ready and the actual production catalog/admin route, then refresh this status with the release identity.
 
-## Scope still pending
-Legacy admin has no review controls yet, so uploaded products remain pending/publicly hidden. Structured product codes/names/prices, multi-image relationships, brands/subcategories, public detail URLs, pagination, queued optimization and Google Sheets preview/approval sync are not implemented. Existing Thai admin-management copy still needs English adaptation. Do not treat backend recovery as completion of the catalog MVP.
-
-## Saved recovery work
-Source recovery commit: 280b5ca in work/akantackle-catalog under this Codex task. Git push failed (Windows credential/TLS integration; alternate verified TLS backend also failed). No remote update confirmed. Local /admin sign-in form renders; valid admin login and upload tests await creation of an admin user.
-
+## Future scope
+Catalog rename/delete, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync are not part of this six-item release. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.

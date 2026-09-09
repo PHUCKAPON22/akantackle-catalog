@@ -1,6 +1,7 @@
 import { useRef, type CSSProperties, type MouseEvent } from 'react'
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from 'framer-motion'
 import type { HeroImage } from '@/types/catalog'
+import { LogoArtwork } from './LogoArtwork'
 
 interface Slot {
   left: string
@@ -116,7 +117,7 @@ export function FeaturedHero({ logo, floating }: FeaturedHeroProps) {
       />
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-4">
         {logo ? (
-          <img src={logo.image_url} alt="Akantackle" className="max-h-28 max-w-[70%] object-contain sm:max-h-36" />
+          <div className="w-[70%] max-w-[540px]"><LogoArtwork src={logo.image_url} layout={logo.layout} /></div>
         ) : (
           <div className="text-center">
             <span className="mb-2 block text-xs font-medium uppercase tracking-[0.3em] text-brand-400">

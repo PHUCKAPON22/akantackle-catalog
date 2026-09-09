@@ -1,33 +1,49 @@
 # Database
 
-Verified 2026-09-09: dedicated ORIGANO / akantackle-catalog project nwlennnacdrwvtsrgwkw. Initially empty. Recovery DDL was executed transactionally through the authenticated Supabase SQL editor, not through the WanderSiam connector. No managed migration-history entry was created.
+Verified 2026-09-09: dedicated ORIGANO / akantackle-catalog project nwlennnacdrwvtsrgwkw. All five application tables have RLS enabled. Never apply this schema to WanderSiam.
 
-## Current schema: akantackle
+## Schema: akantackle
 
-| Table | Columns and relationships |
+| Table | Main columns and relationships |
 | --- | --- |
-| admins | user_id UUID primary key -> auth.users(id), ON DELETE CASCADE |
-| categories | slug TEXT primary key; name_th/name_en TEXT required; sort_order INTEGER default 0 |
-| products | id UUID generated primary key; name TEXT required; category TEXT -> categories(slug), ON DELETE RESTRICT; image_url TEXT nullable; sort_order INTEGER default 0; review_status TEXT default pending (pending/approved); status TEXT default active (active/out_of_stock/discontinued/hidden); created_at/updated_at TIMESTAMPTZ default now() |
-| hero_images | id UUID generated primary key; image_url TEXT required; kind TEXT (logo/floating); sort_order INTEGER default 0; created_at TIMESTAMPTZ default now() |
+| admins | user_id UUID primary key references auth.users, cascade on user deletion |
+| categories | slug TEXT primary key; name_en/name_th required; sort_order INTEGER; parent_slug nullable self-FK, delete restrict |
+| products | id UUID primary key; name required; category nullable FK to categories, delete restrict; image_url nullable cover; sort_order; review_status pending/approved, default pending; status active/out_of_stock/discontinued/hidden, default active; created_at/updated_at |
+| product_images | id UUID primary key; product_id FK to products, cascade on deletion; image_url; sort_order 0..9; unique(product_id, sort_order) |
+| hero_images | id UUID primary key; image_url required; kind logo/floating; sort_order; created_at; nullable layout JSONB {scale,x,y,width,height} |
 
-Indexes: products(category), products(sort_order, created_at DESC), plus primary keys. No automatic updated_at trigger; existing client supplies updates.
+Indexes include categories(parent_slug), products(category), products(sort_order,created_at DESC), products(category,sort_order,created_at DESC,id), the image slot uniqueness index, and a partial unique index allowing only one logo row.
 
-## Grants and RLS
-RLS enabled and verified on all four tables. anon/authenticated have schema USAGE. anon has SELECT only on products/categories/hero_images. authenticated has SELECT/INSERT/UPDATE/DELETE on those three tables and SELECT on admins.
+validate_catalog_parent rejects self-parenting, more than two levels, and moving a main catalog with children below another catalog. sync_cover_image maintains normalized slot 0 after product insertion or cover changes. Existing 253 product covers were verified to have 253 normalized image records after migration; no agent test catalogs remained. These counts are a point-in-time readback, not seed data.
 
-- admins_read_self: authenticated reads only its auth.uid() membership. No client role may modify membership.
-- categories_public_read / hero_public_read: public SELECT.
-- products_public_read: approved review AND status active/out_of_stock AND non-null category.
-- categories_admin_all / products_admin_all / hero_admin_all: authenticated operations require existence of admins.user_id = auth.uid(), both USING and WITH CHECK.
+## Functions
+- catalog_counts(): public read-only counts grouped by assigned catalog, explicitly approved and active/out_of_stock with a category.
+- move_product(p_id UUID, p_before UUID, p_catalog TEXT, p_after BOOLEAN DEFAULT false): checks trusted admin membership and both products' catalog scope, uses an advisory transaction lock for the main catalog, and resequences that main catalog and its children. Null target appends. Frontend supplies before/after targets within the current page.
 
-Membership checks use ordinary RLS-protected subqueries, not SECURITY DEFINER or user-editable metadata.
+Functions use SECURITY INVOKER and an empty search_path. PUBLIC execute was revoked; only authenticated can execute move_product, and anon/authenticated can execute catalog_counts. Trigger functions have no client execute grants. Updated timestamps are supplied by client mutations and the ordering function.
+
+## Grants and policies
+anon/authenticated have schema USAGE. anon has SELECT on categories, products, product_images and hero_images. authenticated has CRUD on these tables and SELECT on admins. There are no client membership-write grants.
+
+- admins: authenticated can read only its own auth.uid() membership.
+- categories/hero_images: public SELECT.
+- products: public reads require approved review, active/out_of_stock status and a non-null category.
+- product_images: public reads require a parent product satisfying the same publication rules.
+- All catalog table writes: authenticated plus existence of admins.user_id = auth.uid(), with both USING and WITH CHECK.
+
+The first store admin's confirmed Auth account and exact matching membership were verified. Credentials are not stored in this repository.
 
 ## Storage
-Bucket akantackle-products is public-read, max 20 MiB per file, MIME types JPEG/PNG/WebP/HEIC/HEIF. Policy akantackle_storage_admin on storage.objects permits authenticated operations only inside this bucket with trusted admin membership. Public bucket URLs are readable; pending product rows are hidden but public image URLs are not private. No images uploaded yet.
+akantackle-products is public-read; the limit is 20 MiB with JPEG/PNG/WebP/HEIC/HEIF MIME types. The frontend converts supported source formats to WebP. akantackle_storage_admin permits writes/deletes only for authenticated trusted admins within this bucket. A public image URL is not private even if its product is Pending.
+
+The new frontend writes versioned UUID paths, never overwrites the logo path, and removes previous files only after confirmed database saves. Bulk product deletion cascades image rows, then removes the corresponding objects. Storage cleanup failures are visible; database and Storage changes are not atomic together.
+
+## Migration history
+- 202609090001_recovered_baseline.sql records the reviewed recovery schema for a fresh project. It MUST NOT be executed against the already recovered live project. Recovery was applied through the verified dashboard SQL editor.
+- 202609090002_catalog_admin.sql was executed transactionally through the same verified Akantackle SQL editor on 2026-09-09. The live schema already includes it; do not run it again.
+- No Supabase CLI migration-history entries were created. Before adopting CLI migrations, diff the live schema and mark these versions as already applied; do not replay them.
 
 ## Verification
-REST returns HTTP 200 for public catalog tables and denies anonymous admins access. A transaction inserted pending/public/hidden fixtures, changed to anon and verified only the approved active row visible, no anonymous INSERT privilege, and no anonymous admins SELECT privilege; all assertions passed, then ROLLBACK removed fixtures.
+A transaction ran the additive migration with fixtures, checked main/sub catalog creation, before/after ordering, public visibility/counts, denial of non-admin mutations and anonymous reorder execution, hierarchy validation, and cascade deletion of selected products' images. All five grouped assertions passed; ROLLBACK removed the temporary migration and fixtures. The exact migration was then committed separately. A later readback confirmed zero test catalogs, all five RLS-protected tables and complete cover backfill.
 
-## Recovery limitations and planned migration
-This deliberately restores the legacy frontend contract. No real products/Auth users exist. Legacy UI lacks review controls: uploads remain pending. Before real imports, add structured codes/names/prices, normalized product_images (up to 10), brands/subcategories, reviewed publish controls, pagination and previewed source sync. Inspect current objects, baseline the schema into versioned migrations and preserve RLS when extending. Never apply Akantackle SQL to WanderSiam.
+Browser interaction tests use isolated local fixtures. They cover UI and Storage call sequencing; live authenticated Storage mutations were not repeated by the agent because the in-app admin session is signed out. Existing user uploads were preserved.

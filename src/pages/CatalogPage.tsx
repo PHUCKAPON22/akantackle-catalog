@@ -1,71 +1,62 @@
-import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCategories } from '@/hooks/useCategories'
 import { useHeroImages } from '@/hooks/useHeroImages'
+import { useLiveQuery } from '@/hooks/useLiveQuery'
+import { supabase } from '@/lib/supabase'
+import { catalogScope } from '@/lib/catalog'
 import { Navbar } from '@/components/Navbar'
 import { Footer } from '@/components/Footer'
 import { FeaturedHero } from '@/components/FeaturedHero'
 import { CategoryNav } from '@/components/CategoryNav'
 import { ProductCard } from '@/components/ProductCard'
 import { ProductModal } from '@/components/ProductModal'
-import type { CategorySlug, Product } from '@/types/catalog'
-
+import type { Product } from '@/types/catalog'
+function ProductListing({ scope, onSelect }: { scope: string[]; onSelect: (product: Product) => void }) {
+  const [pages, setPages] = useState(1)
+  const { products, count, loading, error, refetch } = useProducts({ scope, publicOnly: true, pages })
+  const more = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!more.current || loading || products.length >= count || error) return
+    const observer = new IntersectionObserver(entries => { if (entries[0].isIntersecting) setPages(value => value + 1) }, { rootMargin: '250px' })
+    observer.observe(more.current)
+    return () => observer.disconnect()
+  }, [loading, count, products.length, error])
+  return <>
+    {error && <div role="alert" className="mb-4 rounded-xl border border-red-900 p-4 text-red-300">We couldn’t refresh the catalog. <button className="underline" onClick={() => void refetch()}>Try again</button></div>}
+    {loading && products.length === 0 ? <p className="py-20 text-center text-zinc-400">Loading catalog…</p> : products.length === 0 ?
+      <div className="rounded-2xl border border-dashed border-border py-24 text-center text-zinc-400">No published products in this catalog yet.</div> :
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">{products.map(product => <ProductCard key={product.id} product={product} onClick={() => onSelect(product)} />)}</div>}
+    <div ref={more} className="py-6 text-center">{products.length < count && <button disabled={loading} className="rounded-full border border-border px-6 py-2 text-sm text-zinc-300" onClick={() => setPages(value => value + 1)}>{loading ? 'Loading…' : 'Load more'}</button>}</div>
+  </>
+}
 export function CatalogPage() {
-  const { products, loading, error, refetch } = useProducts()
-  const { categories } = useCategories()
+  const { categories, error: categoryError } = useCategories()
   const { logo, floating } = useHeroImages()
-  const [activeCategory, setActiveCategory] = useState<CategorySlug | 'all'>('all')
+  const [activeCategory, setActiveCategory] = useState('all')
+  const [activeSub, setActiveSub] = useState('all')
   const [selected, setSelected] = useState<Product | null>(null)
-
+  const query = useCallback(async () => { const { data, error } = await supabase.rpc('catalog_counts'); if (error) throw error; return data as { category: string; total: number }[] }, [])
+  const { data: totals } = useLiveQuery(query, [])
   const counts = useMemo(() => {
-    const c: Record<string, number> = { all: products.length }
-    for (const p of products) c[p.category] = (c[p.category] ?? 0) + 1
-    return c
-  }, [products])
-
-  const filtered = useMemo(() => {
-    if (activeCategory === 'all') return products
-    return products.filter((p) => p.category === activeCategory)
-  }, [products, activeCategory])
-
-  return (
-    <div className="min-h-screen">
-      <Navbar />
-      <FeaturedHero logo={logo} floating={floating} />
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-        <div className="mb-6">
-          <CategoryNav categories={categories} active={activeCategory} onChange={setActiveCategory} counts={counts} />
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-surface" />
-            ))}
-          </div>
-        ) : error ? (
-          <div role="alert" className="rounded-2xl border border-border p-12 text-center">
-            <p className="text-zinc-400">We couldn’t load the catalog. Please try again.</p>
-            <button onClick={() => void refetch()} className="mt-4 rounded-lg bg-brand-600 px-5 py-2 text-white">Try again</button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-24 text-center">
-            <p className="text-zinc-400">No products in this category yet.</p>
-          </div>
-        ) : (
-          <motion.div layout className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} onClick={() => setSelected(product)} />
-            ))}
-          </motion.div>
-        )}
-      </main>
-
-      <Footer />
-
-      <ProductModal product={selected} onClose={() => setSelected(null)} />
-    </div>
-  )
+    const result: Record<string, number> = { all: 0 }
+    for (const row of totals) {
+      const count = Number(row.total); result.all += count; result[row.category] = (result[row.category] ?? 0) + count
+      const parent = categories.find(c => c.slug === row.category)?.parent_slug
+      if (parent) result[parent] = (result[parent] ?? 0) + count
+    }
+    return result
+  }, [totals, categories])
+  const scope = catalogScope(categories, activeSub === 'all' ? activeCategory : activeSub)
+  const children = categories.filter(c => c.parent_slug === activeCategory)
+  return <div className="min-h-screen">
+    <Navbar /><FeaturedHero logo={logo} floating={floating} />
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      {categoryError && <p role="alert" className="mb-3 text-red-300">Catalog names could not be refreshed.</p>}
+      <div className="mb-6 space-y-3"><CategoryNav categories={categories.filter(c => !c.parent_slug)} active={activeCategory} onChange={value => { setActiveCategory(value); setActiveSub('all') }} counts={counts} />
+        {children.length > 0 && <CategoryNav categories={children} active={activeSub} onChange={setActiveSub} counts={{ ...counts, all: counts[activeCategory] ?? 0 }} />}
+      </div>
+      <ProductListing key={activeCategory + '/' + activeSub} scope={scope} onSelect={setSelected} />
+    </main><Footer /><ProductModal product={selected} onClose={() => setSelected(null)} />
+  </div>
 }

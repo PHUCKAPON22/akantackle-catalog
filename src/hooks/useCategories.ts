@@ -1,27 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useLiveQuery } from './useLiveQuery'
 import type { Category } from '@/types/catalog'
-
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let active = true
-    supabase
-      .from('categories')
-      .select('*')
-      .order('sort_order')
-      .then(({ data }) => {
-        if (active) {
-          setCategories(data ?? [])
-          setLoading(false)
-        }
-      })
-    return () => {
-      active = false
-    }
+  const query = useCallback(async () => {
+    const { data, error } = await supabase.from('categories').select('*').order('sort_order').order('name_en')
+    if (error) throw error
+    return (data ?? []) as Category[]
   }, [])
-
-  return { categories, loading }
+  const { data: categories, ...state } = useLiveQuery(query, [])
+  return { categories, ...state }
 }
