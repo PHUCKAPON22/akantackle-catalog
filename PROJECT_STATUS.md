@@ -3,11 +3,12 @@
 Updated: 2026-09-10
 
 ## Current
-The six requested admin improvements and guarded catalog/sub-catalog deletion are deployed to production. During a Supabase service incident on 2026-09-10, the dedicated project became unhealthy and database-backed endpoints returned 504 responses. Frontend timeout handling is ready for release while project recovery is staged in the Supabase dashboard.
+The six requested admin improvements and guarded catalog/sub-catalog deletion are deployed to production. A Supabase service incident on 2026-09-10 was recovered by restarting the dedicated project. The backend is healthy again, and production now cancels slow catalog reads and shows a retry action instead of waiting indefinitely.
 
 ## Identity and rollback
 - GitHub: PHUCKAPON22/akantackle-catalog, master. Connector verified as owner with push permission.
 - Catalog deletion release: 022a7d9c28d9bbfb6dac206b8c7fbd90e6710f94. Vercel deployment mK9rLGFgPCeY6L3xJ5q8aUzp39M8 completed successfully; the production alias and deployed AdminPage asset were verified.
+- Availability release: 4663a83aaa72ec68f09885f7f6609bd9462fe7cf. Vercel deployment GfcpcmWpEvyfcxnckJyEwB2n561e completed successfully and the production timeout behavior was verified against the incident before backend recovery.
 - Released feature commit: 1a9da77b0d7c38e3852585e9ddccd0a3f14c9ae3 (local source commit 1ed013c). Vercel deployment 8Xjupxc1VGSvyTZPcDi6o2jDsM3n is Ready, built in 15 seconds at 15:57 Asia/Bangkok on 2026-09-09. Production alias verified.
 - Frontend rollback: c5b3eb9d2218ba8a504c8e20b583809225ba4ed7; production deployment A2fM2y52BANVtSEFsFDWudUd7qBT was Ready and verified before this release.
 - Supabase: ORIGANO / akantackle-catalog, nwlennnacdrwvtsrgwkw, Singapore. Production URL: https://akantackle-catalog.vercel.app.
@@ -36,18 +37,19 @@ The six requested admin improvements and guarded catalog/sub-catalog deletion ar
 - Production serves the same hashed AdminPage bundle produced by the verified local build, including the catalog usage checks and named delete confirmation. Public and `/admin` routes reloaded without browser errors after deployment.
 - Incident reproduction confirmed that Vercel served the application while `categories`, `products`, `hero_images`, `catalog_counts` and Auth refresh calls returned 504 from Supabase. The project dashboard reported `Unhealthy`, persistent Data API failures and `Database not usable` with `CONNECT_TIMEOUT`.
 - The timeout release passes build, lint and `git diff --check`. A local production preview against the unhealthy backend replaced the loading state after 12 seconds with the retryable catalog error and category refresh warning.
+- After the authorized project restart, Supabase reported `Healthy`. Production rendered 471 published products with catalog counts and images; `/admin` rendered the sign-in form normally.
 
 ## Operational notes
 Supabase and Vercel connectors still expose the wrong account/no teams. Akantackle database changes used the verified ORIGANO dashboard; Vercel has a valid browser session. Never write to WanderSiam. Production Vite environment variables are configured; Preview and Development scopes are not.
 
 Live migration 202609090002 was applied via SQL editor, without CLI migration-history entries. The recovered baseline is for fresh databases only. Do not replay either migration on live; see DATABASE.md.
 
-The 2026-09-10 outage investigation made no database or storage writes. The Supabase restart confirmation is staged in Project Settings; restarting causes a few minutes of downtime and requires explicit confirmation before execution.
+The 2026-09-10 outage investigation made no database or storage writes. The user authorized the Supabase project restart; it completed successfully after several minutes. Historical error-rate advisor data can remain visible until its rolling observation window expires.
 
 Local work is in work/akantackle-catalog under the Codex task. The release branch is based on the current API-created remote history. Do not force-push the older divergent local master history.
 
 ## Next
-Confirm the staged Supabase project restart, then verify database health, the public catalog and `/admin`. After recovery, the user can continue testing empty catalog and sub catalog deletion; products must be moved first, and child sub catalogs must be deleted before their parent catalog.
+The user can continue testing catalog administration. For deletion, products must be moved first and child sub catalogs must be deleted before their parent catalog.
 
 ## Future scope
 Catalog rename, bulk product reassignment, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync remain future work. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.
