@@ -1,6 +1,7 @@
 import type { Category, LogoLayout } from '../types/catalog.ts'
 export const PAGE_SIZE = 48
 export const LIVE_REFRESH_MS = 15000
+export const LIVE_QUERY_TIMEOUT_MS = 12000
 export const DEFAULT_LOGO: LogoLayout = { scale: 1, x: 0, y: 0, width: 3, height: 1 }
 export function catalogScope(categories: Category[], slug: string): string[] {
   if (slug === 'all') return []

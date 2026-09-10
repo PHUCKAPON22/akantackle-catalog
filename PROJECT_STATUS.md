@@ -1,9 +1,9 @@
 # Project status
 
-Updated: 2026-09-09
+Updated: 2026-09-10
 
 ## Current
-The six requested admin improvements and guarded catalog/sub-catalog deletion are deployed to production. The additive migration is applied to the dedicated live backend.
+The six requested admin improvements and guarded catalog/sub-catalog deletion are deployed to production. During a Supabase service incident on 2026-09-10, the dedicated project became unhealthy and database-backed endpoints returned 504 responses. Frontend timeout handling is ready for release while project recovery is staged in the Supabase dashboard.
 
 ## Identity and rollback
 - GitHub: PHUCKAPON22/akantackle-catalog, master. Connector verified as owner with push permission.
@@ -20,6 +20,7 @@ The six requested admin improvements and guarded catalog/sub-catalog deletion ar
 - Drag ordering within a selected catalog using an atomic database function, plus touch/keyboard arrow controls.
 - Logo editing for any image proportions: fit, zoom, position, visible overflow frame and saved layout. Repeated selection of the same file works; replacements use fresh URLs.
 - Public data refresh every 15 seconds while visible/online and on returning to the page. Pending products stay private until explicitly published.
+- Live catalog reads stop after 12 seconds, cancel superseded requests and show a retryable error instead of leaving visitors on an endless loading state.
 - 48-product pagination and public infinite loading; upload queue of 100 files with three workers, optimization, explicit errors and retry without duplicating completed uploads.
 - Normalized product_images table with cover backfill, RLS and cascading deletion. Schema migrations and operating documentation are versioned.
 - Existing user data preserved. Readback found 253 product covers and 253 normalized images, zero test catalogs and five RLS-protected tables.
@@ -33,16 +34,20 @@ The six requested admin improvements and guarded catalog/sub-catalog deletion ar
 - Actual new authenticated mutations against production have not been repeated: the agent's in-app /admin session is signed out. User data was not used as test fixtures. Browser viewport override did not take effect, so mobile-width visual verification is not claimed.
 - Isolated deletion UI tests verified controls for both levels, empty-catalog confirmation, blocking for a main catalog with a child, blocking for a catalog with Pending/hidden products, and visible query-error recovery. No real catalog was deleted during testing.
 - Production serves the same hashed AdminPage bundle produced by the verified local build, including the catalog usage checks and named delete confirmation. Public and `/admin` routes reloaded without browser errors after deployment.
+- Incident reproduction confirmed that Vercel served the application while `categories`, `products`, `hero_images`, `catalog_counts` and Auth refresh calls returned 504 from Supabase. The project dashboard reported `Unhealthy`, persistent Data API failures and `Database not usable` with `CONNECT_TIMEOUT`.
+- The timeout release passes build, lint and `git diff --check`. A local production preview against the unhealthy backend replaced the loading state after 12 seconds with the retryable catalog error and category refresh warning.
 
 ## Operational notes
 Supabase and Vercel connectors still expose the wrong account/no teams. Akantackle database changes used the verified ORIGANO dashboard; Vercel has a valid browser session. Never write to WanderSiam. Production Vite environment variables are configured; Preview and Development scopes are not.
 
 Live migration 202609090002 was applied via SQL editor, without CLI migration-history entries. The recovered baseline is for fresh databases only. Do not replay either migration on live; see DATABASE.md.
 
+The 2026-09-10 outage investigation made no database or storage writes. The Supabase restart confirmation is staged in Project Settings; restarting causes a few minutes of downtime and requires explicit confirmation before execution.
+
 Local work is in work/akantackle-catalog under the Codex task. The release branch is based on the current API-created remote history. Do not force-push the older divergent local master history.
 
 ## Next
-The user can open Admin > Catalogs and test deleting an empty catalog or sub catalog. Products must be moved first, and child sub catalogs must be deleted before their parent catalog.
+Confirm the staged Supabase project restart, then verify database health, the public catalog and `/admin`. After recovery, the user can continue testing empty catalog and sub catalog deletion; products must be moved first, and child sub catalogs must be deleted before their parent catalog.
 
 ## Future scope
 Catalog rename, bulk product reassignment, cross-page product positioning, structured codes/brands/prices/stock, multi-image gallery editing, real product detail URLs, search/filter expansion and previewed Google Sheets sync remain future work. Storage/database operations cannot commit atomically; cleanup failures are surfaced and can need manual cleanup. HEIC decoding depends on the browser; source files are limited to 20 MiB.

@@ -38,7 +38,7 @@ export function CatalogPage() {
   const activeCategory = categories.some(c => c.slug === chosenCategory && !c.parent_slug) ? chosenCategory : 'all'
   const activeSub = categories.some(c => c.slug === chosenSub && c.parent_slug === activeCategory) ? chosenSub : 'all'
   const [selected, setSelected] = useState<Product | null>(null)
-  const query = useCallback(async () => { const { data, error } = await supabase.rpc('catalog_counts'); if (error) throw error; return data as { category: string; total: number }[] }, [])
+  const query = useCallback(async (signal: AbortSignal) => { const { data, error } = await supabase.rpc('catalog_counts').abortSignal(signal); if (error) throw error; return data as { category: string; total: number }[] }, [])
   const { data: totals } = useLiveQuery(query, [])
   const counts = useMemo(() => {
     const result: Record<string, number> = { all: 0 }
